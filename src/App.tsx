@@ -64,10 +64,15 @@ export default function App() {
   );
 
   const handleCompute = (val: string, shotCount = shots) => {
-    const clean = val.replace(/[^\d]/g, '') || '2';
+    const clean = val.replace(/[^\d]/g, '');
+    if (!clean) return;
     startTransition(() => {
-      const res = runQuantumPrimalityCheck(clean, shotCount, undefined, baseUrl);
-      setResult(res);
+      try {
+        const res = runQuantumPrimalityCheck(clean, shotCount, undefined, baseUrl);
+        setResult(res);
+      } catch (e) {
+        console.error('Computation error:', e);
+      }
     });
   };
 
@@ -82,10 +87,23 @@ export default function App() {
     const val = e.target.value.replace(/[^\d]/g, '');
     setInputVal(val);
     setActivePreset('Custom Input');
-    if (val.length > 0) {
-      handleCompute(val, shots);
+  };
+
+  const handleCustomInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleCompute(inputVal, shots);
+      setIsCustomEditing(false);
     }
   };
+
+  // Debounced auto-compute when typing custom numbers
+  useEffect(() => {
+    if (!isCustomEditing || !inputVal) return;
+    const timer = setTimeout(() => {
+      handleCompute(inputVal, shots);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [inputVal, isCustomEditing, shots]);
 
   const publicEndpointUrl = `${baseUrl || 'https://quantum.cloud.google'}/api/v1/verify/${result.n || '2147483647'}`;
 
@@ -98,7 +116,7 @@ export default function App() {
   return (
     <div
       id="app-root"
-      className="h-screen w-screen max-h-screen bg-[#020408] text-[#e2e8f0] font-sans flex flex-col relative overflow-hidden select-none"
+      className="h-screen w-screen max-h-screen bg-[#020408] text-[#e2e8f0] font-sans flex flex-col relative overflow-hidden"
       style={{
         backgroundImage:
           'radial-gradient(circle at 50% 25%, #1a1b3a 0%, transparent 60%), radial-gradient(circle at 10% 80%, #0c4a6e 0%, transparent 40%), radial-gradient(circle at 90% 10%, #4c1d95 0%, transparent 30%)',
@@ -177,15 +195,28 @@ export default function App() {
                 </div>
 
                 {isCustomEditing ? (
-                  <input
-                    type="text"
-                    id="input-target-integer"
-                    value={inputVal}
-                    onChange={handleCustomInputChange}
-                    placeholder="e.g. 2147483647"
-                    className="w-full text-2xl sm:text-3xl font-mono tracking-tighter text-white bg-black/60 border border-cyan-500/50 rounded-lg px-3 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                    autoFocus
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      id="input-target-integer"
+                      value={inputVal}
+                      onChange={handleCustomInputChange}
+                      onKeyDown={handleCustomInputKeyDown}
+                      placeholder="e.g. 2147483647"
+                      className="flex-1 text-2xl sm:text-3xl font-mono tracking-tighter text-white bg-black/60 border border-cyan-500/50 rounded-lg px-3 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                      autoFocus
+                    />
+                    <button
+                      id="btn-run-check"
+                      onClick={() => {
+                        handleCompute(inputVal, shots);
+                        setIsCustomEditing(false);
+                      }}
+                      className="px-3 py-2 bg-gradient-to-r from-cyan-500 to-sky-600 hover:from-cyan-400 hover:to-sky-500 text-black font-bold text-xs uppercase tracking-wider rounded-lg transition-all"
+                    >
+                      Run
+                    </button>
+                  </div>
                 ) : (
                   <div
                     onClick={() => setIsCustomEditing(true)}

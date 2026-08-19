@@ -50,6 +50,42 @@ export const BlochSphereView: React.FC<BlochSphereViewProps> = ({ qubits }) => {
   const axisX = project(1, 0, 0);
   const axisY = project(0, 1, 0);
 
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number; startRotX: number; startRotY: number }>({
+    x: 0,
+    y: 0,
+    startRotX: 20,
+    startRotY: 35
+  });
+
+  const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    try {
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    } catch {}
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY,
+      startRotX: rotX,
+      startRotY: rotY
+    });
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    setRotY(dragStart.startRotY + dx * 0.5);
+    setRotX(Math.max(-60, Math.min(60, dragStart.startRotX - dy * 0.5)));
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    setIsDragging(false);
+    try {
+      (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+    } catch {}
+  };
+
   return (
     <div id="bloch-sphere-container" className="p-4 bg-[#0a0f1a]/80 border border-white/10 rounded-xl backdrop-blur-md">
       <div className="flex items-center justify-between mb-2">
@@ -85,29 +121,12 @@ export const BlochSphereView: React.FC<BlochSphereViewProps> = ({ qubits }) => {
         <div className="md:col-span-5 flex flex-col items-center justify-center relative">
           <div className="relative w-[180px] h-[180px]">
             <svg
-              className="w-full h-full cursor-grab active:cursor-grabbing"
+              className="w-full h-full cursor-grab active:cursor-grabbing select-none touch-none"
               viewBox="0 0 260 260"
-              onMouseDown={(e) => {
-                const startX = e.clientX;
-                const startY = e.clientY;
-                const startRotX = rotX;
-                const startRotY = rotY;
-
-                const onMouseMove = (moveEvent: MouseEvent) => {
-                  const dx = moveEvent.clientX - startX;
-                  const dy = moveEvent.clientY - startY;
-                  setRotY(startRotY + dx * 0.5);
-                  setRotX(Math.max(-60, Math.min(60, startRotX - dy * 0.5)));
-                };
-
-                const onMouseUp = () => {
-                  window.removeEventListener('mousemove', onMouseMove);
-                  window.removeEventListener('mouseup', onMouseUp);
-                };
-
-                window.addEventListener('mousemove', onMouseMove);
-                window.addEventListener('mouseup', onMouseUp);
-              }}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
             >
               <defs>
                 <radialGradient id="sphereGrad" cx="35%" cy="35%" r="65%">
