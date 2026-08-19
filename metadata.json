@@ -1,0 +1,6 @@
+{
+  "name": "Google Quantum Prime",
+  "description": "Google Cloud Quantum Functions primality verifier powered by Shor's period finding, Quantum Phase Estimation (QPE), and Cirq circuit simulation with public REST API endpoints.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
